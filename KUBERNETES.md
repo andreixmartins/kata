@@ -92,21 +92,47 @@ kubeadm join 172.31.2.84:6443 --token 0gnw60.v081dlfr4n9x9mg9 \
 
 - Install Calico , pod network to the cluster. 
 
-```shell
+```bash
 kubectl apply -f https://docs.projectcalico.org/manifests/calico.yaml
 ```
 
 ### Checking pods from kube-system namespace
 
-```shell
+```bash
 kubectl get pods -n kube-system
 ```
 
 
+### Namespaces
 
+- Creating namespaces
+```bash
+kubectl create namespace infra
+kubectl create namespace app
+```
 
+- Get namespaces
+```bash
+kubectl get namespaces
+```
 
+- Delete namespaces
+```bash
+kubectl delete namespace <namespace-name>
+```
 
+### Set the Context to a Namespace
 
+- If you want to work within a specific namespace by default for your kubectl commands, you can set the context:
+
+```bash
+Copy
+kubectl config set-context --current --namespace=<namespace-name>
+```
+
+- For example, to switch to the dev namespace:
+```bash
+kubectl config set-context --current --namespace=dev
+```
 
 
