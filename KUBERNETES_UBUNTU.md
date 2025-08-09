@@ -1,6 +1,8 @@
 
 ## AMZ Linux + Kubernetes
 
+> run all commands in sudo e.g > sudo su
+
 
   user_data = <<-EOT
                 #!/bin/bash
@@ -33,3 +35,47 @@ sudo chown $(id -u):$(id -g) $HOME/.kube/config
 
 
 export KUBECONFIG=$HOME/.kube/config
+
+
+
+Run the following command to view the logs of the kubelet:
+
+bash
+Copy
+sudo journalctl -u kubelet -f
+
+
+
+
+
+
+
+Step 2: Apply changes
+After editing your kubeconfig, reload the configuration to ensure the changes take effect:
+
+bash
+Copy
+export KUBEV2_CONFIG=$HOME/.kube/config
+
+
+restarting the kubelet service, which should start the API server:
+
+bash
+Copy
+sudo systemctl restart kubelet
+
+
+
+
+Check the status of the pods in the kube-system namespace:
+
+bash
+Copy
+kubectl get pods -n kube-system
+
+
+
+kubectl apply -f https://docs.projectcalico.org/manifests/calico.yaml
+
+
+
