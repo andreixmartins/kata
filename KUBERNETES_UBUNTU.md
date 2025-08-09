@@ -12,6 +12,7 @@
                 sudo sed -i 's/^SELINUX=enforcing$/SELINUX=permissive/' /etc/selinux/config
                 sudo yum update -y
                 sudo yum install docker -y
+                sudo systemctl enable docker
                 sudo systemctl start docker
                 cat <<EOF | sudo tee /etc/yum.repos.d/kubernetes.repo
                 [kubernetes]
@@ -24,58 +25,38 @@
                 sudo yum install -y kubelet kubeadm kubectl --disableexcludes=kubernetes
                 sudo systemctl enable --now kubelet
                 sudo kubeadm init > /home/ec2-user/kubernetes-node-config.txt
+                export KUBECONFIG=/etc/kubernetes/admin.conf
+                kubectl apply -f https://docs.projectcalico.org/manifests/calico.yaml
             EOT
 
 
 
+To start using your cluster, you need to run the following as a regular user:
 
-mkdir -p $HOME/.kube
-sudo cp -i /etc/kubernetes/admin.conf $HOME/.kube/config
-sudo chown $(id -u):$(id -g) $HOME/.kube/config
+  mkdir -p $HOME/.kube
+  sudo cp -i /etc/kubernetes/admin.conf $HOME/.kube/config
+  sudo chown $(id -u):$(id -g) $HOME/.kube/config
 
+Alternatively, if you are the root user, you can run:
 
-export KUBECONFIG=$HOME/.kube/config
+  export KUBECONFIG=/etc/kubernetes/admin.conf
 
+You should now deploy a pod network to the cluster.
+Run "kubectl apply -f [podnetwork].yaml" with one of the options listed at:
+  https://kubernetes.io/docs/concepts/cluster-administration/addons/
+  kubectl apply -f https://docs.projectcalico.org/manifests/calico.yaml
 
+Then you can join any number of worker nodes by running the following on each as root:
 
-Run the following command to view the logs of the kubelet:
-
-bash
-Copy
-sudo journalctl -u kubelet -f
-
-
-
-
-
-
-
-Step 2: Apply changes
-After editing your kubeconfig, reload the configuration to ensure the changes take effect:
-
-bash
-Copy
-export KUBEV2_CONFIG=$HOME/.kube/config
-
-
-restarting the kubelet service, which should start the API server:
-
-bash
-Copy
-sudo systemctl restart kubelet
+kubeadm join 172.31.2.84:6443 --token 0gnw60.v081dlfr4n9x9mg9 \
+        --discovery-token-ca-cert-hash sha256:4a58cd84bac8165ab7b0c4c1b6a29cd062322d5bad9ad3060845bfa89f6cba37
 
 
 
 
-Check the status of the pods in the kube-system namespace:
-
-bash
-Copy
-kubectl get pods -n kube-system
 
 
 
-kubectl apply -f https://docs.projectcalico.org/manifests/calico.yaml
 
 
 
