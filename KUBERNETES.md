@@ -64,7 +64,7 @@
 
 ### After all commands you should see this instruction
 
-
+```txt
 To start using your cluster, you need to run the following as a regular user:
 
   mkdir -p $HOME/.kube
@@ -84,6 +84,8 @@ Then you can join any number of worker nodes by running the following on each as
 
 kubeadm join 172.31.2.84:6443 --token 0gnw60.v081dlfr4n9x9mg9 \
         --discovery-token-ca-cert-hash sha256:4a58cd84bac8165ab7b0c4c1b6a29cd062322d5bad9ad3060845bfa89f6cba37
+```
+
 
 
 ### Calico 
@@ -94,7 +96,11 @@ kubeadm join 172.31.2.84:6443 --token 0gnw60.v081dlfr4n9x9mg9 \
 kubectl apply -f https://docs.projectcalico.org/manifests/calico.yaml
 ```
 
+### Checking pods from kube-system namespace
 
+```shell
+kubectl get pods -n kube-system
+```
 
 
 
