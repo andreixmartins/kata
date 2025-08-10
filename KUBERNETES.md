@@ -5,6 +5,7 @@
 
 ### Run all commands in sudo e.g > sudo su
 
+### MASTER
 
 ```shell
   sudo su
@@ -48,10 +49,10 @@
                 cat <<EOF | sudo tee /etc/yum.repos.d/kubernetes.repo
                 [kubernetes]
                 name=Kubernetes
-                baseurl=https://pkgs.k8s.io/core:/stable:/v1.26/rpm/
+                baseurl=https://pkgs.k8s.io/core:/stable:/v1.33/rpm/
                 enabled=1
                 gpgcheck=1
-                gpgkey=https://pkgs.k8s.io/core:/stable:/v1.26/rpm/repodata/repomd.xml.key
+                gpgkey=https://pkgs.k8s.io/core:/stable:/v1.33/rpm/repodata/repomd.xml.key
                 EOF
                 sudo yum install -y kubelet kubeadm kubectl --disableexcludes=kubernetes
                 sudo systemctl enable --now kubelet
@@ -136,3 +137,43 @@ kubectl config set-context --current --namespace=dev
 ```
 
 
+## Kubernetes WORKER config
+
+### You can run it in Terraform scripts like this
+
+```tf
+  # User Data: This is the boot script that runs when the instance starts
+  user_data = <<-EOT
+                #!/bin/bash
+                sudo su
+                sudo swapoff -a
+                sudo setenforce 0
+                sudo sed -i 's/^SELINUX=enforcing$/SELINUX=permissive/' /etc/selinux/config
+                sudo yum update -y
+                sudo yum install docker -y
+                sudo systemctl enable docker
+                sudo systemctl start docker
+                cat <<EOF | sudo tee /etc/yum.repos.d/kubernetes.repo
+                [kubernetes]
+                name=Kubernetes
+                baseurl=https://pkgs.k8s.io/core:/stable:/v1.33/rpm/
+                enabled=1
+                gpgcheck=1
+                gpgkey=https://pkgs.k8s.io/core:/stable:/v1.33/rpm/repodata/repomd.xml.key
+                EOF
+                sudo yum install -y kubelet kubeadm kubectl --disableexcludes=kubernetes
+                sudo systemctl enable --now kubelet
+            EOT
+```
+
+### Join command
+
+- Run this command in the Master node
+```bash
+sudo kubeadm token create --print-join-command
+```
+- After that get result from this command and run in the worker node
+```bash
+kubeadm join 172.31.2.84:6443 --token 0gnw60.v081dlfr4n9x9mg9 \
+        --discovery-token-ca-cert-hash sha256:4a58cd84bac8165ab7b0c4c1b6a29cd062322d5bad9ad3060845bfa89f6cba37
+```
