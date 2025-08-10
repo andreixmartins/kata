@@ -177,3 +177,33 @@ sudo kubeadm token create --print-join-command
 kubeadm join 172.31.2.84:6443 --token 0gnw60.v081dlfr4n9x9mg9 \
         --discovery-token-ca-cert-hash sha256:4a58cd84bac8165ab7b0c4c1b6a29cd062322d5bad9ad3060845bfa89f6cba37
 ```
+
+
+
+## TROUBLESHOOTING 
+
+- Command samples
+- See which init container is failing + why
+
+- if you used the "jenkins" namespace, keep -n jenkins; otherwise drop/change it
+```bash
+kubectl -n jenkins describe pod jenkins-0 | sed -n '/Init Containers:/,/Containers:/p'   # names, exit codes, reasons
+kubectl -n jenkins get pod jenkins-0 -o jsonpath='{range .status.initContainerStatuses[*]}{.name}{"  =>  "}{.state.terminated.reason}{" (exit "}{.state.terminated.exitCode}{")\n"}{end}'
+```
+
+- Grab the logs for each init container (the chart usually has init and config-reload-init):
+```bash
+kubectl -n jenkins logs jenkins-0 -c init
+kubectl -n jenkins logs jenkins-0 -c config-reload-init
+```
+
+- PVC actually bound and RW?
+```bash
+kubectl -n jenkins get pvc
+kubectl -n jenkins describe pvc <jenkins-pvc-name>
+```
+
+- Pod events (image pulls, permission errors, etc.)
+```bash
+kubectl -n jenkins describe pod jenkins-0
+```
