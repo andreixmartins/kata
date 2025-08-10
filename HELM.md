@@ -46,3 +46,19 @@ To install Helm on Amazon Linux 2023, follow these steps:
    ```
 
 This should install Helm on your Amazon Linux 2023 system!
+
+
+## HELM useful commands
+
+- Find the release & namespace
+```bash
+helm list -A
+```
+- Uninstall it (Helm 3)
+```bash
+helm uninstall <release-name> -n <namespace>
+```
+
+
+
+
