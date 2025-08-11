@@ -207,3 +207,44 @@ kubectl -n jenkins describe pvc <jenkins-pvc-name>
 ```bash
 kubectl -n jenkins describe pod jenkins-0
 ```
+
+## StorageClass
+
+Here’s the quick, safe way to remove a StorageClass.
+
+1. See what you have (and which is default)
+
+```bash
+kubectl get storageclass
+kubectl describe storageclass <name>
+```
+
+2. If the class you want to delete is the **default**, unset it (or switch default first)
+
+```bash
+# remove the "default" annotation from the current default
+kubectl annotate storageclass <old-default> \
+  storageclass.kubernetes.io/is-default-class- \
+  storageclass.beta.kubernetes.io/is-default-class- --overwrite
+
+# (optional) make another class the default
+kubectl annotate storageclass <new-default> \
+  storageclass.kubernetes.io/is-default-class=true --overwrite
+```
+
+3. Delete the StorageClass
+
+```bash
+kubectl delete storageclass <name>
+```
+
+### Notes that matter
+
+* StorageClasses are **cluster-scoped** (no namespace).
+* Deleting a StorageClass **does not delete existing PVs/PVCs**. Already-bound PVCs keep working.
+  PVCs that reference the deleted class and are **not yet bound** will stay **Pending** until you change them.
+* You generally **can’t change** `storageClassName` on a **bound** PVC. To move data, create a new PVC (possibly from a snapshot), migrate/copy, then cut over.
+* If a **Helm chart** created the StorageClass (e.g., a CSI driver chart), disable its creation in the chart values (look for keys like `storageClass.create` or `storageClasses`) and `helm upgrade` first — otherwise the class may be recreated on the next upgrade.
+
+
+
