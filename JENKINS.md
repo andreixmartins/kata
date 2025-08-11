@@ -44,3 +44,50 @@ kubectl port-forward svc/jenkins --namespace infra 8080:8080
 ```
 Now you can access Jenkins at [http://localhost:8080](http://localhost:8080).
 
+
+# Jenkins Persistence
+
+## Jenkins Persistence Volumes
+
+- Make sure this path /data/jenkins-ax exists
+
+```yaml
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+  name: jenkins-ax
+spec:
+  capacity:
+    storage: 10Gi
+  accessModes:
+    - ReadWriteOnce
+  persistentVolumeReclaimPolicy: Delete
+  storageClassName: manual  # Must match the PVC's storageClassName
+  local:
+    path: /data/jenkins-ax # Adjust to your setup
+  nodeAffinity:
+    required:
+      nodeSelectorTerms:
+        - matchExpressions:
+            - key: kubernetes.io/hostname
+              operator: In
+              values:
+                - ip-172-31-2-84.sa-east-1.compute.internal  # Replace with your node name
+```
+
+
+## Jenkins Persistence Volume Claim
+
+```yaml
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: jenkins-ax
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 10Gi
+  storageClassName: manual  # Must match the PV's storageClassName
+```
