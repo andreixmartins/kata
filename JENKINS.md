@@ -45,9 +45,23 @@ kubectl port-forward svc/jenkins --namespace infra 8080:8080
 Now you can access Jenkins at [http://localhost:8080](http://localhost:8080).
 
 
-# Jenkins Persistence
+## Jenkins Persistence
 
-## Jenkins Persistence Volumes
+
+### Create Storage Class
+
+```
+apiVersion: storage.k8s.io/v1
+kind: StorageClass
+metadata:
+  name: manual  # This is the name you're referring to in the PV and PVC
+provisioner: kubernetes.io/no-provisioner  # Use "no-provisioner" for static provisioning (manual PV)
+volumeBindingMode: WaitForFirstConsumer
+```
+
+
+
+### Jenkins Persistence Volumes
 
 - Make sure this path /data/jenkins-ax exists
 
@@ -76,7 +90,7 @@ spec:
 ```
 
 
-## Jenkins Persistence Volume Claim
+### Jenkins Persistence Volume Claim
 
 ```yaml
 apiVersion: v1
