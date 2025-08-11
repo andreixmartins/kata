@@ -253,3 +253,14 @@ kubectl delete storageclass <name>
 ```bash
 kubectl get pods --all-namespaces
 ```
+
+- Patch service
+```bash
+kubectl patch svc prometheus-operated -p '{"spec": {"type": "LoadBalancer"}}'
+```
+
+- Port fowarding
+```
+kubectl port-forward svc/stable-kube-prometheus-sta-prometheus 9090:9090
+```
+
