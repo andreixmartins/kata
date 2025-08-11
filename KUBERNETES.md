@@ -247,4 +247,9 @@ kubectl delete storageclass <name>
 * If a **Helm chart** created the StorageClass (e.g., a CSI driver chart), disable its creation in the chart values (look for keys like `storageClass.create` or `storageClasses`) and `helm upgrade` first — otherwise the class may be recreated on the next upgrade.
 
 
+## Commands
 
+- Get all pods
+```bash
+kubectl get pods --all-namespaces
+```
