@@ -59,6 +59,9 @@ helm list -A
 helm uninstall <release-name> -n <namespace>
 ```
 
-
+- Helm upgrade
+```
+helm upgrade jenkins jenkins/jenkins -f jenkins-values.yaml
+```
 
 
