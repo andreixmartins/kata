@@ -260,7 +260,12 @@ kubectl patch svc prometheus-operated -p '{"spec": {"type": "LoadBalancer"}}'
 ```
 
 - Port fowarding
-```
+```bash
 kubectl port-forward svc/stable-kube-prometheus-sta-prometheus 9090:9090
+```
+
+- Copy service config
+```bash
+kubectl get svc <service-name> -o yaml > service.yaml
 ```
 
