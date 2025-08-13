@@ -1,17 +1,12 @@
 pipeline {
   agent {
     kubernetes {
-      label 'kaniko-maven-ci'
-      namespace 'infra'   // change if needed
+      label 'kaniko-maven-ci-fix-chown'
+      namespace 'infra'  
       yaml '''
 apiVersion: v1
 kind: Pod
 spec:
-  securityContext:
-    runAsUser: 1000
-    runAsGroup: 1000
-    fsGroup: 1000
-    fsGroupChangePolicy: "OnRootMismatch"
   volumes:
     - name: home
       emptyDir: {}
@@ -19,20 +14,24 @@ spec:
       emptyDir: {}
     - name: maven-repo
       emptyDir: {}
+
   containers:
+    # ----- GIT (non-root) -----
     - name: git
       image: alpine/git:2.45.2
       tty: true
       env:
         - name: HOME
           value: /home/jenkins
-        - name: DOCKER_CONFIG
-          value: /home/jenkins/.docker
       command: ["/bin/sh","-lc","tail -f /dev/null"]
       volumeMounts:
         - name: home
           mountPath: /home/jenkins
+      securityContext:
+        runAsUser: 1000
+        runAsGroup: 1000
 
+    # ----- MAVEN (non-root) -----
     - name: maven
       image: maven:3.9-eclipse-temurin-21
       tty: true
@@ -47,7 +46,11 @@ spec:
           mountPath: /home/jenkins
         - name: maven-repo
           mountPath: /home/jenkins/.m2
+      securityContext:
+        runAsUser: 1000
+        runAsGroup: 1000
 
+    # ----- KANIKO (root to allow chown during unpack) -----
     - name: kaniko
       image: gcr.io/kaniko-project/executor:debug
       tty: true
@@ -60,24 +63,26 @@ spec:
           mountPath: /home/jenkins
         - name: kaniko-cache
           mountPath: /kaniko/cache
+      securityContext:
+        runAsUser: 0       # ← important: Kaniko needs root to chown files when unpacking base image
 '''
     }
   }
 
   environment {
-    IMAGE = 'axsoftware/boot-chart'     // <— set your image
-    GIT_URL = 'https://github.com/andreixmartins/boot-chart.git'  // <— set your repo
-    GIT_BRANCH = 'main'                          // <— set your branch
-    GIT_CREDS = 'git-creds'                      // <— Jenkins credential ID (Username/Password or Token)
+    IMAGE = 'axsoftware/boot-chart'     
+    GIT_URL = 'https://github.com/andreixmartins/boot-chart.git' 
+    GIT_BRANCH = 'main'                          
+    GIT_CREDS = 'git-creds'                      
+    REGISTRY_CREDS = 'dockerhub-creds' // Create this credential in Jenkins, password must be the docker-hub token
   }
 
   stages {
-    stage('Checkout') {
+    stage('Checkout code from Github') {
       steps {
         deleteDir()
         container('git') {
-          // now $HOME is /home/jenkins and writable
-          sh 'echo HOME=$HOME && id && ls -ld $HOME'
+          sh 'echo HOME=$HOME && id && ls -ld "$HOME"'
           sh 'git config --global --add safe.directory "$WORKSPACE"'
           git branch: env.GIT_BRANCH, url: env.GIT_URL, credentialsId: env.GIT_CREDS
           sh 'git rev-parse --short HEAD'
@@ -85,7 +90,7 @@ spec:
       }
     }
 
-    stage('Build (Maven)') {
+    stage('Build app') {
       steps {
         container('maven') {
           sh 'mvn -B -DskipTests package'
@@ -93,23 +98,34 @@ spec:
       }
     }
 
-    stage('Build & Push Image (Kaniko)') {
+    stage('Publish to image registry') {
       steps {
         container('kaniko') {
-          withCredentials([usernamePassword(credentialsId: 'dockerhub-creds', usernameVariable: 'USER', passwordVariable: 'PASS')]) {
+          withCredentials([usernamePassword(credentialsId: env.REGISTRY_CREDS, usernameVariable: 'USER', passwordVariable: 'PASS')]) {
             sh '''
-              mkdir -p "$HOME/.docker"
-              cat > "$HOME/.docker/config.json" <<EOF
-              {"auths":{"https://index.docker.io/v1/":{"username":"$USER","password":"$PASS"}}}
-              EOF
+              set -euo pipefail
+              : "${WORKSPACE:?WORKSPACE not set}"
 
+              CFG_DIR="$WORKSPACE/.docker"
+              DIGEST_PATH="$WORKSPACE/.kaniko-image.digest"
+              mkdir -p "$CFG_DIR"
+
+              # Docker Hub auth (base64 "user:token")
+              AUTH="$(printf "%s:%s" "$USER" "$PASS" | base64 | tr -d '\\n')"
+              printf '{ "auths": { "https://index.docker.io/v1/": { "auth": "%s" } } }\n' "$AUTH" > "$CFG_DIR/config.json"
+              export DOCKER_CONFIG="$CFG_DIR"
+
+              echo "Building & pushing docker.io/${IMAGE#docker.io/}:${BUILD_NUMBER}"
               /kaniko/executor \
                 --context "$WORKSPACE" \
                 --dockerfile "$WORKSPACE/Dockerfile" \
-                --destination "${IMAGE}:${BUILD_NUMBER}" \
-                --destination "${IMAGE}:latest" \
+                --destination "docker.io/${IMAGE#docker.io/}:${BUILD_NUMBER}" \
+                --destination "docker.io/${IMAGE#docker.io/}:latest" \
                 --cache=true --cache-dir=/kaniko/cache \
-                --docker-config "$HOME/.docker"
+                --verbosity=info \
+                --digest-file "$DIGEST_PATH"
+
+              [ -f "$DIGEST_PATH" ] && echo "Pushed digest: $(cat "$DIGEST_PATH")"
             '''
           }
         }
