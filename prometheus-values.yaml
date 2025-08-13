@@ -1,0 +1,44 @@
+# values.yaml
+grafana:
+  enabled: true
+  adminPassword: "admin"         # change this
+  service:
+    type: ClusterIP              # Use LoadBalancer if you want a public IP
+  ingress:
+    enabled: false
+
+prometheus:
+  service:
+    type: ClusterIP              # Use LoadBalancer or NodePort to expose Prometheus UI
+  ingress:
+    enabled: false
+
+alertmanager:
+  service:
+    type: ClusterIP              # Use LoadBalancer/NodePort if you want it exposed
+  ingress:
+    enabled: false
+
+# Optional persistence (uncomment and ensure a StorageClass exists)
+# prometheus:
+#   prometheusSpec:
+#     storageSpec:
+#       volumeClaimTemplate:
+#         spec:
+#           accessModes: ["ReadWriteOnce"]
+#           resources:
+#             requests:
+#               storage: 20Gi
+# grafana:
+#   persistence:
+#     enabled: true
+#     size: 5Gi
+# alertmanager:
+#   alertmanagerSpec:
+#     storage:
+#       volumeClaimTemplate:
+#         spec:
+#           accessModes: ["ReadWriteOnce"]
+#           resources:
+#             requests:
+#               storage: 2Gi
