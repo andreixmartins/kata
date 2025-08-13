@@ -105,3 +105,15 @@ spec:
       storage: 10Gi
   storageClassName: manual  # Must match the PV's storageClassName
 ```
+
+
+## Jenkins config
+
+1. Create Docker-hub credential (Manage Jenkins > Credentials > System) - label = dockerhub-creds
+2. Update Jenkins plugins
+3. Create a Jenkins pipeline for boot-chart app
+4. Add this Jenkinsfile to pipeline https://github.com/andreixmartins/kata/blob/main/Jenkinsfile
+
+
+
+
