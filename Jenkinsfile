@@ -26,6 +26,8 @@ spec:
       env:
         - name: HOME
           value: /home/jenkins
+        - name: DOCKER_CONFIG
+          value: /home/jenkins/.docker
       command: ["/bin/sh","-lc","tail -f /dev/null"]
       volumeMounts:
         - name: home
@@ -96,8 +98,8 @@ spec:
         container('kaniko') {
           withCredentials([usernamePassword(credentialsId: 'dockerhub-creds', usernameVariable: 'USER', passwordVariable: 'PASS')]) {
             sh '''
-              mkdir -p /kaniko/.docker
-              cat > /kaniko/.docker/config.json <<EOF
+              mkdir -p "$HOME/.docker"
+              cat > "$HOME/.docker/config.json" <<EOF
               {"auths":{"https://index.docker.io/v1/":{"username":"$USER","password":"$PASS"}}}
               EOF
 
@@ -106,7 +108,8 @@ spec:
                 --dockerfile "$WORKSPACE/Dockerfile" \
                 --destination "${IMAGE}:${BUILD_NUMBER}" \
                 --destination "${IMAGE}:latest" \
-                --cache=true --cache-dir=/kaniko/cache
+                --cache=true --cache-dir=/kaniko/cache \
+                --docker-config "$HOME/.docker"
             '''
           }
         }
