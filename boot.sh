@@ -53,10 +53,11 @@ echo "Grafana Port forwarding :3000"
 kubectl -n monitoring port-forward svc/kube-prometheus-stack-prometheus 9090:9090
 kubectl -n monitoring port-forward svc/kube-prometheus-stack-grafana 3000:80
 
-# Grafana password
+echo "Grafana password" 
 kubectl get secret -n monitoring kube-prometheus-stack-grafana -o jsonpath='{.data.admin-password}' | base64 -d; echo
 
 
+echo "Creating Boot Chart app job"
 
 
 
