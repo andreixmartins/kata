@@ -19,7 +19,7 @@ alertmanager:
   ingress:
     enabled: false
 
-# Optional persistence (uncomment and ensure a StorageClass exists)
+# Optional persistence make sure storageClass exists
 # prometheus:
 #   prometheusSpec:
 #     storageSpec:

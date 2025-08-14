@@ -61,8 +61,8 @@ remaining() {
 }
 
 check_once() {
-  # Outputs two numbers to stdout: <total> <bad>
-  # And prints details unless QUIET=1.
+  # two numbers to stdout <total> <bad>
+  # prints details unless QUIET=1
   local out total bad
   out=$(kubectl get pods "${SCOPE[@]}" --no-headers 2>/dev/null || true)
 
