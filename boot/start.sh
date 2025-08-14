@@ -1,17 +1,15 @@
+#!/usr/bin/env bash
 
+docker info >/dev/null 2>&1 && echo "Docker engine is RUNNING" || echo "Docker engine is NOT reachable"
 
-# HOW to install Kubernetes cluster local
-
-# Requirements
-# Docker
-# brew
-
-
+# OpenTofu
 echo "Installing Opentofu" 
 brew update
 brew install opentofu
 tofu -version
 
+
+# Minikube
 echo "Installing Minikube" 
 brew install minikube
 brew install kubernetes-cli
@@ -22,23 +20,53 @@ minikube delete && minikube start --driver=docker --cpus=4 --memory=8192
 minikube ssh -- nproc
 minikube ssh -- grep MemTotal /proc/meminfo
 
-
-echo "Creating namespaces infra and app" 
-kubectl create namespace infra
-kubectl create namespace app
-
-
+# Helm
 echo "Installing HELM" 
 brew install helm
 helm version
 
+
+# Spring Boot app
+echo "Creating Boot Chart app job"
+helm repo add ax https://andreixmartins.github.io/helm-charts
+helm repo update
+helm install boot-chart andrei/boot-chart -n app --create-namespace
+
+
+# Jenkins installation
 echo "Installing HELM Jenkins" 
 helm repo add jenkins https://charts.jenkins.io
 helm repo update
-helm install jenkins jenkins/jenkins -n infra
-kubectl get secret --namespace infra jenkins -o jsonpath="{.data.jenkins-admin-password}" | base64 --decode
+helm install jenkins jenkins/jenkins -n infra  --create-namespace
+
+
+# Prometheus
+echo "Installing Prometheus" 
+helm repo add prometheus-community https://prometheus-community.github.io/helm-charts
+helm repo update
+helm install kube-prometheus-stack prometheus-community/kube-prometheus-stack -n infra -f prometheus-values.yaml  --create-namespace
+
+
+# Check if all pods are running
+./check-all-pods-running.sh --watch
+
+
+# Port port-forward
+echo "Grafana Port forwarding :3000" 
+kubectl -n monitoring port-forward svc/kube-prometheus-stack-prometheus 9090:9090
+kubectl -n monitoring port-forward svc/kube-prometheus-stack-grafana 3000:80
+
+echo "Grafana password" 
+kubectl get secret -n monitoring kube-prometheus-stack-grafana -o jsonpath='{.data.admin-password}' | base64 -d; echo
+
+echo "Boot chart forwarding :8282" 
+kubectl -n app port-forward svc/boot-chart 8282:8282
+
+echo "Jenkins port forwarding"
 kubectl port-forward svc/jenkins --namespace infra 8080:8080
 
+
+# Jenkins pipeline
 echo "Creating Jenkins pipeline" 
 JENKINS_URL=http://localhost:8080
 USER=admin
@@ -55,29 +83,5 @@ curl -u "$USER:$TOKEN" -H 'Content-Type: application/xml' ${CRUMB:+-H "$CRUMB"} 
 
 echo "Trigger job" 
 # curl -u "$USER:$TOKEN" -X POST "$JENKINS_URL/job/boot-chart-job/build"
-
-echo "Installing Prometheus" 
-helm repo add prometheus-community https://prometheus-community.github.io/helm-charts
-helm repo update
-helm install kube-prometheus-stack prometheus-community/kube-prometheus-stack -n infra -f prometheus-values.yaml
-
-echo "Grafana Port forwarding :3000" 
-kubectl -n monitoring port-forward svc/kube-prometheus-stack-prometheus 9090:9090
-kubectl -n monitoring port-forward svc/kube-prometheus-stack-grafana 3000:80
-
-echo "Grafana password" 
-kubectl get secret -n monitoring kube-prometheus-stack-grafana -o jsonpath='{.data.admin-password}' | base64 -d; echo
-
-
-echo "Creating Boot Chart app job"
-helm repo add ax https://andreixmartins.github.io/helm-charts
-helm repo update
-helm install boot-chart andrei/boot-chart -n app --create-namespace
-helm upgrade boot-chart andrei/boot-chart -n app
-
-echo "Boot chart forwarding :8282" 
-kubectl -n app port-forward svc/boot-chart 8282:8282
-
-
 
 
