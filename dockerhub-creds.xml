@@ -1,6 +1,6 @@
 <com.cloudbees.plugins.credentials.impl.UsernamePasswordCredentialsImpl>
   <scope>GLOBAL</scope>
-  <id>gh-user</id>
+  <id>dockerhub-creds</id>
   <description>GitHub robot</description>
   <username>admin</username>
   <password>admin</password>
