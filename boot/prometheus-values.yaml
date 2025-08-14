@@ -1,21 +1,21 @@
 # values.yaml
 grafana:
   enabled: true
-  adminPassword: "admin"         # change this
+  adminPassword: "admin"        
   service:
-    type: ClusterIP              # Use LoadBalancer if you want a public IP
+    type: ClusterIP             
   ingress:
     enabled: false
 
 prometheus:
   service:
-    type: ClusterIP              # Use LoadBalancer or NodePort to expose Prometheus UI
+    type: ClusterIP              
   ingress:
     enabled: false
 
 alertmanager:
   service:
-    type: ClusterIP              # Use LoadBalancer/NodePort if you want it exposed
+    type: ClusterIP              
   ingress:
     enabled: false
 
