@@ -2,6 +2,15 @@
 
 # HOW to install Kubernetes cluster local
 
+# Requirements
+# Docker
+# brew
+
+
+echo "Installing Opentofu" 
+brew update
+brew install opentofu
+tofu -version
 
 echo "Installing Minikube" 
 brew install minikube
