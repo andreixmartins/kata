@@ -115,7 +115,8 @@ spec:
               printf '{ "auths": { "https://index.docker.io/v1/": { "auth": "%s" } } }\n' "$AUTH" > "$CFG_DIR/config.json"
               export DOCKER_CONFIG="$CFG_DIR"
 
-              echo "Building & pushing docker.io/${IMAGE#docker.io/}:${BUILD_NUMBER}"
+              echo "Building and pushing to docker.io/${IMAGE#docker.io/}:${BUILD_NUMBER}"
+              # Add this parameter to build the docker image amd64 platform --custom-platform=linux/amd64 or --custom-platform=linux/arm64
               /kaniko/executor \
                 --context "$WORKSPACE" \
                 --dockerfile "$WORKSPACE/Dockerfile" \
