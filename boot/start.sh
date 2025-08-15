@@ -30,7 +30,7 @@ helm version
 echo "Creating Boot Chart app job"
 helm repo add ax https://andreixmartins.github.io/helm-charts
 helm repo update
-helm install boot-chart andrei/boot-chart -n app --create-namespace
+helm install boot-chart ax/boot-chart -n app --create-namespace
 
 
 # Jenkins installation

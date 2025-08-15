@@ -1,0 +1,24 @@
+<project>
+  <actions/>
+  <description>Rollback Boot-Chart app.</description>
+  <keepDependencies>false</keepDependencies>
+  <properties/>
+  <scm class="hudson.scm.NullSCM"/>
+  <canRoam>true</canRoam>
+  <disabled>false</disabled>
+  <blockBuildWhenDownstreamBuilding>false</blockBuildWhenDownstreamBuilding>
+  <blockBuildWhenUpstreamBuilding>false</blockBuildWhenUpstreamBuilding>
+  <triggers/>
+  <concurrentBuild>false</concurrentBuild>
+  <builders>
+    <hudson.tasks.Shell>
+      <command>#!/bin/bash
+set -e
+echo "Rollback boot-chart app to previous revision"
+helm rollback boot-chart $(helm history boot-chart -n app | awk 'NR>1{rev=$1} {print} END{print prev} {prev=rev}' | tail -n1) -n app --wait
+</command>
+    </hudson.tasks.Shell>
+  </builders>
+  <publishers/>
+  <buildWrappers/>
+</project>

@@ -1,0 +1,37 @@
+# --- Core & configuration ---
+configuration-as-code
+cloudbees-folder
+matrix-auth
+credentials-binding
+job-dsl
+
+# --- Pipelines ---
+workflow-aggregator
+pipeline-utility-steps
+pipeline-stage-view
+timestamper
+ansicolor
+ws-cleanup
+
+# --- Source control / GitHub ---
+git
+git-client
+github
+github-branch-source
+pipeline-github-lib
+
+# --- Build tools ---
+maven-plugin
+junit
+
+# --- Docker & Containers ---
+docker-workflow
+docker-commons
+
+# --- Kubernetes agents (if you want Jenkins to launch pods as agents) ---
+kubernetes
+
+# --- Notifications ---
+slack
+email-ext
+mailer

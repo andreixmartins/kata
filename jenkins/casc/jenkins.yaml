@@ -1,0 +1,19 @@
+jenkins:
+  systemMessage: "Provisioned by JCasC. No setup wizard."
+  numExecutors: 2
+
+  securityRealm:
+    local:
+      allowsSignup: false
+      users:
+        - id: "admin"
+          password: "admin"
+
+  authorizationStrategy:
+    globalMatrix:
+      grantedPermissions:
+        - "Overall/Administer:admin"
+
+unclassified:
+  location:
+    url: "http://localhost:8888/"
