@@ -13,10 +13,10 @@ resource "null_resource" "run_local_script" {
   }
 
 #  To destroy all kubernetes estructure uncommente this code and run - tofu destroy -auto-approve
-#   provisioner "local-exec" {
-#     when        = destroy
-#     command     = "bash ${self.triggers.module_path}/boot/cleanup.sh"
-#     interpreter = ["/bin/bash", "-c"]
-#   }
+  provisioner "local-exec" {
+    when        = destroy
+    command     = "bash ${self.triggers.module_path}/boot/cleanup.sh"
+    interpreter = ["/bin/bash", "-c"]
+  }
 }
 

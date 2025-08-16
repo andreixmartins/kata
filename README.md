@@ -1,7 +1,6 @@
 
 
-
-# Jenkins (Orchestrator)
+# 1 - Jenkins (Orchestrator)
 
 - To install Jenkins run the commands below in the root kata folder. It will install Jenkins and create the "kata-bootstrap" job to build the whole kata structure.
 
@@ -10,19 +9,27 @@ cd jenkins
 ./run.sh
 ```
 
-- If you want to trigger the Jenkins job uncomment the line - `curl -u "$USER:$TOKEN" -X POST "$JENKINS_URL/job/kata-k8s-bootstrap/build"` in run.sh
 
+# 2 - Deploy infra
 
-- This job will run Tofu scripts like these below.
-
+## To deploy infra
 ```bash
-tofu init
-tofu plan
-tofu apply -auto-approve
+cd boot
+./start.sh
+```
+## To destroy infra
+```bash
+cd boot
+./cleanup.sh
 ```
 
-```bash
-tofu destroy -auto-approve
-```
 
+# 3 - External acesss
 
+- Jenkins - http://localhost:8080 
+- username: admin
+- password: admin
+
+- Grafana - http://localhost:3000 
+- username: admin
+- password: admin

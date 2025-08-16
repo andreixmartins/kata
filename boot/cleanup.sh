@@ -1,136 +1,122 @@
-#!/usr/bin/env bash
+#!/bin/bash
 
-
-# Delete the namespace
-# ./cleanup.sh -n jenkins --delete-namespace
-
-# Delete all namespaces
-# ./cleanup.sh --all-namespaces
-
-# Delete PersistentVolumes
-# ./cleanup.sh --all-namespaces --include-pv --force
-
-# Dry run (prints what it would do)
-# ./cleanup.sh -n staging --dry-run
-
+# ./cleanup.sh          # safe cleanup
+# ./cleanup.sh --deep   # also remove Docker/Podman artifacts & cache
+# ./cleanup.sh --deep -y# deep cleanup without prompts
 
 set -euo pipefail
 
-EXCLUDE_NAMESPACES=("infra", "app")
-NAMESPACE=""
-ALL_NS=0
-DELETE_NS=0
-INCLUDE_PV=0
-INCLUDE_SYSTEM=0
-FORCE=0
-DRY_RUN=0
+DEEP=0
+ASSUME_YES=0
 
-usage() {
-  sed -n '2,40p' "$0"
-  echo
-  echo "Examples:"
-  echo "  ./nuke-k8s.sh -n jenkins --delete-namespace"
-  echo "  ./nuke-k8s.sh --all-namespaces --include-pv --force"
-}
+for arg in "$@"; do
+  case "$arg" in
+    --deep) DEEP=1 ;;
+    -y|--yes) ASSUME_YES=1 ;;
+    -h|--help)
+      cat <<'EOF'
+Usage: ./cleanup.sh [--deep] [-y]
 
-confirm() {
-  local prompt="$1"
-  if (( FORCE == 1 )); then return 0; fi
-  read -r -p "$prompt [type: YES] " ans
-  [[ "$ans" == "YES" ]]
-}
+  --deep   Also delete Minikube Docker/Podman artifacts (container, network,
+           volumes, kicbase image) and ~/.minikube cache directory.
+  -y       Don't prompt for confirmation.
 
-run() {
-  if (( DRY_RUN == 1 )); then
-    echo "[dry-run] $*"
-  else
-    # Don't fail the whole script on a single kind failing; log and continue.
-    if ! eval "$*"; then
-      echo "WARN: command failed: $*" >&2
-      return 1
-    fi
-  fi
-}
+This script:
+  1) Stops and deletes ALL Minikube profiles.
+  2) Purges Minikube state.
+  3) Removes kubeconfig contexts/clusters/users named like "minikube*".
+  4) (--deep) Removes the "minikube" Docker/Podman container, network, volumes,
+     kicbase image, and ~/.minikube cache.
 
-# ---- args ----
-while [[ $# -gt 0 ]]; do
-  case "$1" in
-    -n|--namespace) NAMESPACE="${2:?}"; shift 2;;
-    --all-namespaces) ALL_NS=1; shift;;
-    --delete-namespace|--delete-namespaces) DELETE_NS=1; shift;;
-    --include-pv) INCLUDE_PV=1; shift;;
-    --include-system) INCLUDE_SYSTEM=1; shift;;
-    --force) FORCE=1; shift;;
-    --dry-run) DRY_RUN=1; shift;;
-    -h|--help) usage; exit 0;;
-    *) echo "Unknown arg: $1" >&2; usage; exit 1;;
+EOF
+      exit 0
+      ;;
   esac
 done
 
-command -v kubectl >/dev/null 2>&1 || { echo "kubectl not found"; exit 2; }
+confirm() {
+  if [[ $ASSUME_YES -eq 1 ]]; then return 0; fi
+  read -r -p "$1 [y/N] " ans
+  [[ "${ans:-}" =~ ^[Yy]$ ]]
+}
 
-if (( ALL_NS == 1 )) && [[ -n "$NAMESPACE" ]]; then
-  echo "Choose either -n or --all-namespaces, not both." >&2; exit 1
-fi
-if (( ALL_NS == 0 )) && [[ -z "$NAMESPACE" ]]; then
-  echo "Pass -n <namespace> or --all-namespaces." >&2; exit 1
-fi
+have() { command -v "$1" >/dev/null 2>&1; }
 
-# Build namespace list
-namespaces=()
-if (( ALL_NS == 1 )); then
-  if (( INCLUDE_SYSTEM == 0 )); then
-    excl_pattern=$(printf "|%s" "${EXCLUDE_NAMESPACES[@]}"); excl_pattern="${excl_pattern:1}"
-    mapfile -t namespaces < <(kubectl get ns -o jsonpath='{range .items[*]}{.metadata.name}{"\n"}{end}' \
-      | grep -Ev "^(${excl_pattern})$")
-  else
-    mapfile -t namespaces < <(kubectl get ns -o jsonpath='{range .items[*]}{.metadata.name}{"\n"}{end}')
-  fi
+echo ">>> Minikube cleanup starting..."
 
-  [[ ${#namespaces[@]} -gt 0 ]] || { echo "No namespaces to operate on."; exit 0; }
+if have minikube; then
+  echo ">>> Stopping any running Minikube profiles..."
+  minikube stop --all >/dev/null 2>&1 || true
 
-  echo "About to delete resources from ALL non-system namespaces:"
-  printf '  - %s\n' "${namespaces[@]}"
-  confirm "This is destructive. Continue?" || { echo "Aborted."; exit 1; }
+  echo ">>> Deleting ALL Minikube profiles and purging state..."
+  # --force avoids interactive prompts if something is running
+  minikube delete --all --purge --force || true
 else
-  # Single namespace
-  kubectl get ns "$NAMESPACE" >/dev/null
-  namespaces=("$NAMESPACE")
+  echo "!!! 'minikube' not found; skipping Minikube commands."
 fi
 
-# Determine deletable namespaced resource kinds (safe + future-proof)
-# Exclude Events to avoid noise
-mapfile -t kinds < <(kubectl api-resources --namespaced=true --verbs=list,delete -o name \
-  | grep -Ev '^(events|events.events.k8s.io)$')
-
-echo "Deleting the following namespaced kinds:"
-printf '  - %s\n' "${kinds[@]}"
-
-errors=0
-
-for ns in "${namespaces[@]}"; do
-  echo "===== Namespace: $ns ====="
-  for k in "${kinds[@]}"; do
-    run "kubectl -n \"$ns\" delete \"$k\" --all --ignore-not-found --wait=false"
-    (( errors += $? ))
+# Clean kubeconfig entries that reference minikube
+if have kubectl; then
+  echo ">>> Cleaning kubeconfig entries named like 'minikube*'..."
+  set +e
+  # contexts
+  kubectl config get-contexts -o name 2>/dev/null | grep -E '^minikube(-|$)' | while read -r ctx; do
+    [[ -n "$ctx" ]] && kubectl config delete-context "$ctx" >/dev/null 2>&1 || true
   done
+  # clusters
+  kubectl config get-clusters 2>/dev/null | grep -E '^minikube(-|$)' | while read -r cl; do
+    [[ -n "$cl" ]] && kubectl config delete-cluster "$cl" >/dev/null 2>&1 || true
+  done
+  # users
+  kubectl config get-users 2>/dev/null | grep -E '^minikube(-|$)' | while read -r usr; do
+    [[ -n "$usr" ]] && kubectl config delete-user "$usr" >/dev/null 2>&1 || true
+  done
+  set -e
+else
+  echo "!!! 'kubectl' not found; skipping kubeconfig cleanup."
+fi
 
-  if (( DELETE_NS == 1 )); then
-    echo "Deleting namespace: $ns"
-    run "kubectl delete ns \"$ns\" --wait=false"
-    (( errors += $? ))
+if [[ $DEEP -eq 1 ]]; then
+  echo ">>> Deep cleanup enabled."
+
+  # Docker artifacts
+  if have docker && docker info >/dev/null 2>&1; then
+    echo ">>> Cleaning Docker artifacts with name 'minikube'..."
+    docker rm -f minikube >/dev/null 2>&1 || true
+    docker network rm minikube >/dev/null 2>&1 || true
+
+    # Remove volumes named with minikube
+    docker volume ls --format '{{.Name}}' | grep -E '^minikube(-|$)' >/dev/null 2>&1 && \
+      docker volume ls --format '{{.Name}}' | grep -E '^minikube(-|$)' | xargs -r docker volume rm >/dev/null 2>&1 || true
+
+    # Remove kicbase & minikube-specific images (safe to re-pull later)
+    docker images --format '{{.Repository}}:{{.Tag}} {{.ID}}' \
+      | awk '/k8s-minikube\/kicbase|gcr\.io\/k8s-minikube\/kicbase|kicbase/ {print $2}' \
+      | xargs -r docker rmi -f >/dev/null 2>&1 || true
   fi
-done
 
-if (( INCLUDE_PV == 1 )); then
-  echo "Deleting cluster PVs (danger: shared storage) ..."
-  run "kubectl delete pv --all --ignore-not-found --wait=false"
-  (( errors += $? ))
+  # Podman artifacts
+  if have podman && podman info >/dev/null 2>&1; then
+    echo ">>> Cleaning Podman artifacts with name 'minikube'..."
+    podman rm -f minikube >/dev/null 2>&1 || true
+    podman network rm minikube >/dev/null 2>&1 || true
+
+    podman volume ls --format '{{.Name}}' | grep -E '^minikube(-|$)' >/dev/null 2>&1 && \
+      podman volume ls --format '{{.Name}}' | grep -E '^minikube(-|$)' | xargs -r podman volume rm >/dev/null 2>&1 || true
+
+    podman images --format '{{.Repository}}:{{.Tag}} {{.ID}}' \
+      | awk '/k8s-minikube\/kicbase|gcr\.io\/k8s-minikube\/kicbase|kicbase/ {print $2}' \
+      | xargs -r podman rmi -f >/dev/null 2>&1 || true
+  fi
+
+  # ~/.minikube cache (already mostly purged, but ensure it’s gone)
+  if [[ -d "${HOME}/.minikube" ]]; then
+    if confirm "Remove ${HOME}/.minikube directory entirely?"; then
+      rm -rf "${HOME}/.minikube"
+    else
+      echo ">>> Skipping ~/.minikube removal."
+    fi
+  fi
 fi
 
-if (( errors > 0 )); then
-  echo "Completed with some errors (likely due to RBAC/missing kinds). Review logs above." >&2
-  exit 3
-fi
-
-echo "Done."
+echo ">>> Done. Minikube cleanup completed."

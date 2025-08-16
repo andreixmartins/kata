@@ -1,4 +1,6 @@
-#!/usr/bin/env bash
+#!/bin/bash
+
+set -euo pipefail
 
 docker info >/dev/null 2>&1 && echo "Docker engine is RUNNING" || echo "Docker engine is NOT reachable"
 
@@ -13,10 +15,11 @@ tofu -version
 echo "Installing Minikube" 
 brew install minikube
 brew install kubernetes-cli
-minikube config set driver docker
-minikube addons enable ingress
+
 minikube stop
-minikube delete && minikube start --driver=docker --cpus=4 --memory=8192
+minikube config set driver docker
+minikube start -p minikube --driver=docker --cpus=4 --memory=7168
+minikube update-context -p minikube
 minikube ssh -- nproc
 minikube ssh -- grep MemTotal /proc/meminfo
 
@@ -30,41 +33,31 @@ helm version
 echo "Creating Boot Chart app job"
 helm repo add ax https://andreixmartins.github.io/helm-charts
 helm repo update
-helm install boot-chart ax/boot-chart -n app --create-namespace
+helm upgrade --install boot-chart ax/boot-chart -n app --create-namespace
 
 
 # Jenkins installation
 echo "Installing HELM Jenkins" 
 helm repo add jenkins https://charts.jenkins.io
 helm repo update
-helm install jenkins jenkins/jenkins -n infra  --create-namespace
+helm upgrade --install jenkins jenkins/jenkins -n infra -f jenkins-values.yaml  --create-namespace
 
 
 # Prometheus
 echo "Installing Prometheus" 
 helm repo add prometheus-community https://prometheus-community.github.io/helm-charts
 helm repo update
-helm install kube-prometheus-stack prometheus-community/kube-prometheus-stack -n infra -f prometheus-values.yaml  --create-namespace
+helm upgrade --install kube-prometheus-stack prometheus-community/kube-prometheus-stack -n infra -f prometheus-values.yaml  --create-namespace
 
 
-# Check if all pods are running
-./check-all-pods-running.sh --watch
+# Check if pods from app namespace are Ready
+echo "Check if pods are running"
+kubectl wait -n "app" --for=condition=Ready pod --all --timeout=600s
 
 
-# Port port-forward
-echo "Grafana Port forwarding :3000" 
-kubectl -n monitoring port-forward svc/kube-prometheus-stack-prometheus 9090:9090
-kubectl -n monitoring port-forward svc/kube-prometheus-stack-grafana 3000:80
-
-echo "Grafana password" 
-kubectl get secret -n monitoring kube-prometheus-stack-grafana -o jsonpath='{.data.admin-password}' | base64 -d; echo
-
-echo "Boot chart forwarding :8282" 
-kubectl -n app port-forward svc/boot-chart 8282:8282
-
-echo "Jenkins port forwarding"
-kubectl port-forward svc/jenkins --namespace infra 8080:8080
-
+nohup kubectl port-forward svc/jenkins --namespace infra 8080:8080 > /tmp/jenkins.log 2>&1 &
+nohup kubectl -n infra port-forward svc/kube-prometheus-stack-prometheus 9090:9090 > /tmp/prometheus.log 2>&1 &
+nohup kubectl -n infra port-forward svc/kube-prometheus-stack-grafana 3000:80 > /tmp/grafana.log 2>&1 &
 
 # Jenkins pipeline
 echo "Creating Jenkins pipeline" 

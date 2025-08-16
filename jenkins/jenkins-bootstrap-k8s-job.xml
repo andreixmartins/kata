@@ -89,12 +89,12 @@
   <builders>
     <hudson.tasks.Shell>
       <command>#!/bin/bash -e
-        echo "Jenkins job: $JOB_NAME #$BUILD_NUMBER"
-        echo "Workspace: $WORKSPACE"
-        echo "Repo: ${GIT_URL} @ ${GIT_BRANCH}"
-        tofu init
-        tofu plan
-        tofu apply -auto-approve
+echo "Jenkins job: $JOB_NAME #$BUILD_NUMBER"
+echo "Workspace: $WORKSPACE"
+echo "Repo: ${GIT_URL} @ ${GIT_BRANCH}"
+tofu init
+tofu plan
+tofu apply -auto-approve
         </command>
     </hudson.tasks.Shell>
   </builders>
