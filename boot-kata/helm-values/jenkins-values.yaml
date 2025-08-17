@@ -1,0 +1,65 @@
+controller:
+  serviceAccount: jenkins-service-account
+  admin:
+    username: admin
+    existingSecret: jenkins-admin
+    userKey: username
+    passwordKey: password
+  serviceType: NodePort
+  resources:
+    requests:
+      cpu: 500m
+      memory: 1Gi
+    limits:
+      cpu: 1
+      memory: 2Gi
+  additionalExistingSecrets:
+    - name: jenkins-dockerhub
+      keyName: username
+    - name: jenkins-dockerhub
+      keyName: token
+  installPlugins:
+    - kubernetes
+    - workflow-aggregator
+    - git
+    - configuration-as-code
+    - credentials-binding
+    - github
+    - pipeline-stage-view
+    - pipeline-graph-view 
+  JCasC:
+    enabled: true
+    configScripts:
+      jenkins-casc-configs: |
+        credentials:
+          system:
+            domainCredentials:
+              - credentials:
+                - usernamePassword:
+                    scope: GLOBAL
+                    id: "dockerhub-credential"
+                    username: "${jenkins-dockerhub-username}"
+                    password: "${jenkins-dockerhub-token}"
+                    description: "Dockerhub credentials"
+agent:
+  podName: jenkins-agent
+  namespace: infra
+  serviceAccount: jenkins-service-account
+  enabled: true
+  runAsUser: 0
+  image:
+    registry: index.docker.io
+    repository: axsoftware/jenkins-agent
+    tag: latest
+    pullPolicy: Always
+  privileged: true
+  resources:
+    requests:
+      cpu: 500m
+      memory: 1Gi
+    limits:
+      cpu: 1
+      memory: 2Gi
+persistence:
+  enabled: true
+  size: 5Gi
