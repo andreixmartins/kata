@@ -45,7 +45,7 @@ resource "kubernetes_cluster_role" "jenkins_cluster_admin" {
   metadata {
     name = "jenkins-cluster-admin"
     labels = {
-      app = "Jenkins infra"
+      app = "jenkins_infra"
     }
   }
 
