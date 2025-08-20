@@ -1,35 +1,28 @@
 
 
-# 1 - Jenkins (Orchestrator)
+# Kata cluster
 
-- To install Jenkins run the commands below in the root kata folder. It will install Jenkins and create the "kata-bootstrap" job to build the whole kata structure.
-
+- Build cluster
 ```bash
-cd jenkins
-./run.sh
+tofu init
+tofu apply -auto-approve
+```
+- Destroy cluster
+```bash
+tofu destroy -auto-approve
 ```
 
+# Build Dockerfile Jenkins Agent
 
-# 2 - Deploy infra
+# amd64
+docker build -t axsoftware/jenkins-agent .
 
-## To deploy infra
-```bash
-cd boot
-./start.sh
-```
-## To destroy infra
-```bash
-cd boot
-./cleanup.sh
-```
+# arm64 (Apple Silicon) via buildx
+docker buildx build --platform linux/arm64 -t axsoftware/jenkins-agent .
 
+# publish ro registry
+docker push axsoftware/jenkins-agent:latest
 
-# 3 - External acesss
+# Delete cluster
+kind delete cluster --name kata-cluster || true
 
-- Jenkins - http://localhost:8080 
-- username: admin
-- password: admin
-
-- Grafana - http://localhost:3000 
-- username: admin
-- password: admin

@@ -1,5 +1,0 @@
-controller:
-  admin:
-    username: admin
-    password: "admin"
-    createSecret: true   

@@ -1,0 +1,22 @@
+
+# Grafana helm config username : admin, password: admin
+# Do the kubernetes port-forward to acess Grafana on port 3000. Check out output.tf
+grafana:
+  enabled: true
+  adminPassword: "admin"        
+  service:
+    type: ClusterIP             
+  ingress:
+    enabled: false
+
+prometheus:
+  service:
+    type: ClusterIP              
+  ingress:
+    enabled: false
+
+alertmanager:
+  service:
+    type: ClusterIP              
+  ingress:
+    enabled: false
