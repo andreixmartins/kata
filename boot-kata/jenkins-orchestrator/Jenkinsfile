@@ -1,0 +1,55 @@
+pipeline {
+    agent any
+
+    options {
+        buildDiscarder(logRotator(numToKeepStr: '10'))
+    }
+    
+    environment {
+        GITHUB_REPO = 'https://github.com/andreixmartins/kata'
+    }
+
+    stages {
+         stage('Checkout') {
+            steps {
+                script {
+                    checkout([$class: 'GitSCM',
+                        branches: [[name: '*/main']],
+                        userRemoteConfigs: [[url: env.GITHUB_REPO]]]
+                    )
+                }
+            }
+        }
+
+
+        stage('Test') {
+            steps {
+                dir('boot-kata') {
+                    withCredentials([
+                        string(credentialsId: 'dockerhub-token', variable: 'TF_VAR_dockerhub_token'),
+                        string(credentialsId: 'jenkins-admin-password', variable: 'TF_VAR_jenkins_admin_password')
+                    ]) {
+                        sh '''
+                            tofu init
+                            tofu test
+                            tofu plan
+                        '''
+                    }
+                }
+            }
+        }
+
+        stage('Build') {
+            steps {
+                dir('boot-kata') {
+                    withCredentials([
+                        string(credentialsId: 'dockerhub-token', variable: 'TF_VAR_dockerhub_token'),
+                        string(credentialsId: 'jenkins-password', variable: 'TF_VAR_jenkins_admin_password')
+                    ]) {
+                        sh 'tofu apply -auto-approve'
+                    }
+                }
+            }
+        }
+    }
+}
