@@ -26,3 +26,8 @@ docker push axsoftware/jenkins-agent:latest
 # Delete cluster
 kind delete cluster --name kata-cluster || true
 
+
+
+# ARGODC
+
+helm upgrade  argocd argo/argo-cd -n argocd -f /boot-kata/helm-values/argocd-values.yaml

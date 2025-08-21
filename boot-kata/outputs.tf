@@ -24,3 +24,15 @@ output "grafana_port_forward" {
   description = "Run this command to open Grafana port 8080 in your local"
   value       = "kubectl port-forward -n infra svc/kube-prometheus-stack-grafana 3000:80"
 }
+
+
+
+output "argocd_username"             { value = "admin" }
+# output "argocd_initial_admin_passwd" { value = nonsensitive(base64decode(data.kubernetes_secret.argocd_admin.data["password"])) }
+output "access_hint" {
+  value = "kubectl -n argocd port-forward svc/argocd-server 8888:443"
+}
+
+output "argocd_initial_admin_passwd" {
+  value = "kubectl -n argocd get secret argocd-initial-admin-secret -o jsonpath=\"{.data.password}\" | base64 -d echo"
+}

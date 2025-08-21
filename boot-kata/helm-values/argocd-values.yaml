@@ -1,0 +1,30 @@
+server:
+  service:
+    type: NodePort   # LoadBalancer or ClusterIP / NodePort
+
+configs:
+  repositories:
+    my-public-repo:
+      url: https://github.com/andreixmartins/boot-chart.git
+
+additionalObjects:
+  - apiVersion: argoproj.io/v1alpha1
+    kind: Application
+    metadata:
+      name: boot-chart
+      namespace: argocd
+    spec:
+      project: default
+      source:
+        repoURL: https://github.com/andreixmartins/boot-chart.git
+        targetRevision: main
+        path: charts/myapp
+      destination:
+        server: https://kubernetes.default.svc
+        namespace: app
+      syncPolicy:
+        automated:
+          prune: true
+          selfHeal: true
+        syncOptions:
+          - CreateNamespace=true

@@ -33,6 +33,10 @@ resource "kubernetes_namespace" "namespace_infra" {
   }
 }
 
+resource "kubernetes_namespace" "namespace_argocd" {
+  metadata { name = "argocd" }
+}
+
 
 resource "kubernetes_service_account" "jenkins_service_account" {
   metadata {
@@ -109,6 +113,33 @@ resource "helm_release" "kps" {
   wait             = true
   timeout          = 1800
   values           = [file("${path.module}/helm-values/prometheus-values.yaml")]
+}
+
+
+# --- Argo CD via Helm ---
+resource "helm_release" "argocd" {
+  name       = "argocd"
+  repository = "https://argoproj.github.io/argo-helm"
+  chart      = "argo-cd"
+  version    = var.chart_version
+  namespace  = kubernetes_namespace.namespace_argocd.metadata[0].name
+  wait       = true
+  timeout    = 600
+
+  values = [yamlencode({
+    server = { service = { type = var.server_service_type } }
+  })]
+
+  depends_on = [kubernetes_namespace.namespace_argocd]
+}
+
+# --- Initial admin password output ---
+data "kubernetes_secret" "argocd_admin" {
+  metadata {
+    name      = "argocd-initial-admin-secret"
+    namespace = kubernetes_namespace.namespace_argocd.metadata[0].name
+  }
+  depends_on = [helm_release.argocd]
 }
 
 # TODO - Remove it later
