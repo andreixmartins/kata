@@ -26,11 +26,3 @@ variable "kube_context"        {
   type = string
   default = null 
 }
-variable "server_service_type" { 
-  type = string 
-  default = "ClusterIP" 
-}
-variable "chart_version"       { 
-  type = string 
-  default = "7.8.3" 
-} 

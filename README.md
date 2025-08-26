@@ -2,32 +2,51 @@
 
 # Kata cluster
 
+Create a Kubernetes cluster using helm charts and tofu scripts. To build the Kubernetes cluster install the following tools
+
+## Requirements
+- Docker/Podman
+- Minikube
+- OpenTofu
+- You need at least 8GB of memory provisioned in Docker
+
+
+## Installation 
+
+Run the commands bellow to create the cluster
+
 - Build cluster
 ```bash
 tofu init
 tofu apply -auto-approve
 ```
+
+Run the commands bellow to destroy the cluster
+
 - Destroy cluster
 ```bash
 tofu destroy -auto-approve
 ```
 
-# Build Dockerfile Jenkins Agent
+# Docker commands
 
-# amd64
+- To build jenkins Docker image
 docker build -t axsoftware/jenkins-agent .
 
-# arm64 (Apple Silicon) via buildx
+- To build jenkins Docker image in arm64 ARCH
 docker buildx build --platform linux/arm64 -t axsoftware/jenkins-agent .
 
-# publish ro registry
+- Publishing jenkins images to Dockerhub
 docker push axsoftware/jenkins-agent:latest
 
-# Delete cluster
+# Kubectl commands
+
+- Delete minikube cluster manually
 kind delete cluster --name kata-cluster || true
 
 
-
-# ARGODC
+# ArgoCD commands 
 
 helm upgrade  argocd argo/argo-cd -n argocd -f /boot-kata/helm-values/argocd-values.yaml
+
+helm upgrade  argocd argo/argo-cd -n argocd -f ./helm-values/argocd-values.yaml

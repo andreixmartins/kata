@@ -89,6 +89,7 @@ resource "helm_release" "boot_chart" {
   create_namespace = true
   wait             = true
   timeout          = 900
+  depends_on = [helm_release.kps]
 }
 
 # Jenkins
@@ -126,9 +127,7 @@ resource "helm_release" "argocd" {
   wait       = true
   timeout    = 600
 
-  values = [yamlencode({
-    server = { service = { type = var.server_service_type } }
-  })]
+  values     = [file("${path.module}/helm-values/argocd-repo-values.yaml")]
 
   depends_on = [kubernetes_namespace.namespace_argocd]
 }
@@ -140,13 +139,4 @@ data "kubernetes_secret" "argocd_admin" {
     namespace = kubernetes_namespace.namespace_argocd.metadata[0].name
   }
   depends_on = [helm_release.argocd]
-}
-
-# TODO - Remove it later
-# Wait for app pods to be ready
-resource "null_resource" "wait_app" {
-  depends_on = [helm_release.boot_chart]
-  provisioner "local-exec" {
-    command = "kubectl --kubeconfig=${local_file.kubeconfig.filename} wait -n app --for=condition=Ready pod --all --timeout=600s || true"
-  }
 }

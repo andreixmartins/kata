@@ -1,0 +1,29 @@
+server:
+  service:
+    type: NodePort   # LoadBalancer or ClusterIP / NodePort
+
+configs:
+  repositories:
+    my-public-repo:
+      url: https://github.com/andreixmartins/helm-charts.git
+
+additionalObjects:
+  - apiVersion: argoproj.io/v1alpha1
+    kind: Application
+    metadata:
+      name: boot-chart
+      namespace: argocd
+    spec:
+      project: default
+      source:
+        repoURL: https://andreixmartins.github.io/helm-charts
+        chart: boot-chart
+      destination:
+        server: https://kubernetes.default.svc
+        namespace: app
+      syncPolicy:
+        automated:
+          prune: true
+          selfHeal: true
+        syncOptions:
+          - CreateNamespace=true

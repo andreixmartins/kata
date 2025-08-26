@@ -34,5 +34,5 @@ output "access_hint" {
 }
 
 output "argocd_initial_admin_passwd" {
-  value = "kubectl -n argocd get secret argocd-initial-admin-secret -o jsonpath=\"{.data.password}\" | base64 -d echo"
+  value = "kubectl -n argocd get secret argocd-initial-admin-secret -o go-template='{{.data.password | base64decode}}'"
 }
