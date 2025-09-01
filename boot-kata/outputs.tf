@@ -1,6 +1,7 @@
-output "kubeconfig" {
-  value = local_file.kubeconfig.filename
-}
+# output "kubeconfig" {
+#   value = local.kubeconfig
+# }
+
 output "cluster_name" {
   value = var.cluster_name
 }
@@ -21,7 +22,7 @@ output "prometheus_port_forward" {
 }
 
 output "grafana_port_forward" {
-  description = "Run this command to open Grafana port 8080 in your local"
+  description = "Run this command to open Grafana port 3000 in your local"
   value       = "kubectl port-forward -n infra svc/kube-prometheus-stack-grafana 3000:80"
 }
 
