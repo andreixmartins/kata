@@ -1,43 +1,36 @@
-# locals {
-#   kubeconfig = abspath(var.kubeconfig_path)
-# }
 
 resource "kind_cluster" "this" {
   name           = var.cluster_name
   wait_for_ready = true
+  # kubeconfig_path      = "${path.module}/kubeconfig.yaml"
 
-  kind_config {
-    api_version = "kind.x-k8s.io/v1alpha4"
-    kind        = "Cluster"
+  # kind_config {
+  #   api_version = "kind.x-k8s.io/v1alpha4"
+  #   kind        = "Cluster"
+  #   node {
+  #     role = "control-plane"
 
-    node {
-      role = "control-plane"
-
-      # Map host ports to the NodePorts we'll pin in the Helm install
-      extra_port_mappings {
-        container_port = 31437  # HTTP NodePort in cluster
-        host_port      = 8080   # host port you'll curl
-        protocol       = "TCP"
-      }
-      extra_port_mappings {
-        container_port = 31438  # HTTPS NodePort in cluster
-        host_port      = 8443   # host port you'll curl for TLS tests
-        protocol       = "TCP"
-      }
-    }
-  }
+  #     # Map host ports to the NodePorts we'll pin in the Helm install
+  #     extra_port_mappings {
+  #       container_port = 31437  # HTTP NodePort in cluster
+  #       host_port      = 8080   # host port you'll curl
+  #       protocol       = "TCP"
+  #     }
+  #     extra_port_mappings {
+  #       container_port = 31438  # HTTPS NodePort in cluster
+  #       host_port      = 8443   # host port you'll curl for TLS tests
+  #       protocol       = "TCP"
+  #     }
+  #   }
+  # }
 
 }
 
 # Create kubeconfig for providers/CLI
 resource "local_file" "kubeconfig" {
   content  = kind_cluster.this.kubeconfig
-  # filename = local.kubeconfig
   filename = "${path.module}/kubeconfig.yaml"
-  # depends_on = [ kind_cluster.this ]
 }
-
-
 
 
 # Kubernetes and Helm providers wired to the cluster

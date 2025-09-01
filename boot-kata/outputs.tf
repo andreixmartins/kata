@@ -1,6 +1,4 @@
-# output "kubeconfig" {
-#   value = local.kubeconfig
-# }
+
 
 output "cluster_name" {
   value = var.cluster_name
