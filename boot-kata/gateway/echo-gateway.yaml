@@ -1,17 +1,9 @@
-# # 1) Install Gateway API CRDs (standard channel)
-# kubectl apply -f https://github.com/kubernetes-sigs/gateway-api/releases/latest/download/standard-install.yaml
-# # verify
-# kubectl get crd | grep gateway.networking.k8s.io
 
-
-# # 2) Install a controller that implements Gateway API (Envoy Gateway)
-# helm install eg oci://docker.io/envoyproxy/gateway-helm \
-#   --version v1.5.0 \
-#   -n envoy-gateway-system --create-namespace
+# # Install a controller that implements Gateway API (Envoy Gateway)
+# helm install eg oci://docker.io/envoyproxy/gateway-helm --version v1.5.0 -n envoy-gateway-system --create-namespace
 # kubectl wait -n envoy-gateway-system deploy/envoy-gateway --for=condition=Available --timeout=5m
 
-
-# # 3) Create a trivial app to route to
+# # Create a trivial app to route to
 # kubectl create ns demo
 # kubectl -n demo create deploy echo --image=ealen/echo-server:latest --port=80
 # kubectl -n demo expose deploy echo --port=80

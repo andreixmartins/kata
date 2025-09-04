@@ -1,54 +1,54 @@
 
-resource "kind_cluster" "this" {
+variable "kubeconfig_for_providers" {
+  type    = string
+  default = ""
+}
+
+
+resource "kind_cluster" "dev" {
   name           = var.cluster_name
   wait_for_ready = true
-  # kubeconfig_path      = "${path.module}/kubeconfig.yaml"
 
-  # kind_config {
-  #   api_version = "kind.x-k8s.io/v1alpha4"
-  #   kind        = "Cluster"
-  #   node {
-  #     role = "control-plane"
+  kind_config {
+    api_version = "kind.x-k8s.io/v1alpha4"
+    kind        = "Cluster"
+    node {
+      role = "control-plane"
 
-  #     # Map host ports to the NodePorts we'll pin in the Helm install
-  #     extra_port_mappings {
-  #       container_port = 31437  # HTTP NodePort in cluster
-  #       host_port      = 8080   # host port you'll curl
-  #       protocol       = "TCP"
-  #     }
-  #     extra_port_mappings {
-  #       container_port = 31438  # HTTPS NodePort in cluster
-  #       host_port      = 8443   # host port you'll curl for TLS tests
-  #       protocol       = "TCP"
-  #     }
-  #   }
-  # }
+      # Map host ports to the NodePorts we'll pin in the Helm install
+      extra_port_mappings {
+        container_port = 31447  # HTTP NodePort in cluster
+        host_port      = 8090   # host port you'll curl
+        protocol       = "TCP"
+      }
+      extra_port_mappings {
+        container_port = 31448  # HTTPS NodePort in cluster
+        host_port      = 8453   # host port you'll curl for TLS tests
+        protocol       = "TCP"
+      }
+    }
+  }
 
 }
 
-# Create kubeconfig for providers/CLI
-resource "local_file" "kubeconfig" {
-  content  = kind_cluster.this.kubeconfig
-  filename = "${path.module}/kubeconfig.yaml"
+
+# Providers
+provider "kind" {
+  
 }
 
-
-# Kubernetes and Helm providers wired to the cluster
 provider "kubernetes" {
-  config_path = local_file.kubeconfig.filename
+  config_path = var.kubeconfig_for_providers
 }
 
 provider "helm" {
   kubernetes {
-    config_path = local_file.kubeconfig.filename
-  }
+    config_path = var.kubeconfig_for_providers
+  }  
 }
 
-provider "kubectl" {
-  config_path       = local_file.kubeconfig.filename
-  load_config_file  = true
-}
 
+# Namespaces
 resource "kubernetes_namespace" "namespace_app" {
   metadata {
     name = "app"
@@ -226,46 +226,48 @@ data "kubernetes_secret" "argocd_admin" {
 
 # API GATEWAY
 # Using releases/latest so you always get the GA Standard channel definitions.
-# data "http" "gateway_api_standard" {
-#   url = "https://github.com/kubernetes-sigs/gateway-api/releases/latest/download/standard-install.yaml"
-# }
+data "http" "gateway_api_standard" {
+  url = "https://github.com/kubernetes-sigs/gateway-api/releases/latest/download/standard-install.yaml"
+}
 
-# data "kubectl_file_documents" "gateway_api_docs" {
-#   content = data.http.gateway_api_standard.response_body
-# }
+data "kubectl_file_documents" "gateway_api_docs" {
+  content = data.http.gateway_api_standard.response_body
+}
 
-# resource "kubectl_manifest" "gateway_api" {
-#   for_each  = data.kubectl_file_documents.gateway_api_docs.manifests
-#   yaml_body = each.value
-# }
+resource "kubectl_manifest" "gateway_api" {
+  for_each  = data.kubectl_file_documents.gateway_api_docs.manifests
+  yaml_body = each.value
+}
 
-# # Install NGF via the Helm provider with NodePort + fixed nodePorts
-# # The chart is published in an OCI registry (ghcr.io).
-# resource "helm_release" "ngf" {
-#   name             = "ngf"
-#   namespace        = "nginx-gateway"
-#   create_namespace = true
+# Install NGF via the Helm provider with NodePort + fixed nodePorts
+# The chart is published in an OCI registry (ghcr.io).
+resource "helm_release" "ngf" {
+  name             = "ngf"
+  namespace        = "nginx-gateway"
+  create_namespace = true
 
-#   repository = "oci://ghcr.io/nginx/charts"
-#   chart      = "nginx-gateway-fabric"
+  repository = "oci://ghcr.io/nginx/charts"
+  chart      = "nginx-gateway-fabric"
 
-#   # Wait up to 10m for the deployment to roll out
-#   timeout = 600
-#   wait    = true
+  # Wait up to 10m for the deployment to roll out
+  timeout = 600
+  wait    = true
 
-#   # Provide values as YAML so we can set complex structures cleanly:
-#   values = [yamlencode({
-#     nginx = {
-#       service = {
-#         type      = "NodePort"
-#         # Pin the NodePorts to match our kind host port mappings
-#         nodePorts = [
-#           { port = 31437, listenerPort = 80  },
-#           { port = 31438, listenerPort = 443 },
-#         ]
-#       }
-#     }
-#   })]
+  # Provide values as YAML so we can set complex structures cleanly:
+  values = [yamlencode({
+    nginx = {
+      service = {
+        type      = "NodePort"
+        # Pin the NodePorts to match our kind host port mappings
+        nodePorts = [
+          { port = 31447, listenerPort = 80  },
+          { port = 31448, listenerPort = 443 },
+        ]
+      }
+    }
+  })]
 
-#   depends_on = [kubectl_manifest.gateway_api]
-# }
+  depends_on = [kubectl_manifest.gateway_api]
+}
+
+

@@ -1,8 +1,4 @@
-variable "kubeconfig_path" {
-  type        = string
-  default     = "kubeconfig.yaml"
-  description = "Path to kubeconfig generated"
-}
+
 
 # Kubernetes cluster name
 variable "cluster_name" {
