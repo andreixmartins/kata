@@ -1,9 +1,8 @@
 
 variable "kubeconfig_for_providers" {
   type    = string
-  default = ""
+  default = "kata-cluster-config"
 }
-
 
 resource "kind_cluster" "dev" {
   name           = var.cluster_name
@@ -169,60 +168,6 @@ data "kubernetes_secret" "argocd_admin" {
   depends_on = [helm_release.argocd]
 }
 
-# Ingress
-
-# resource "helm_release" "ingress_nginx" {
-#   name             = "ingress-nginx"
-#   repository       = "https://kubernetes.github.io/ingress-nginx"
-#   chart            = "ingress-nginx"
-#   namespace        = "ingress-nginx"
-#   create_namespace = true
-#   # version        = "x.y.z" # (optional but recommended to pin)
-
-#   # --set controller.ingressClassResource.name=nginx
-#   set {
-#     name  = "controller.ingressClassResource.name"
-#     value = "nginx"
-#   }
-
-#   # --set controller.ingressClass=nginx
-#   set {
-#     name  = "controller.ingressClass"
-#     value = "nginx"
-#   }
-
-#   # --set controller.publishService.enabled=false
-#   # kind doesn’t have real LoadBalancer Services. With NodePort exposure, there’s no external LB address to publish, so turn this off to avoid unnecessary lookups/warnings.
-#   set {
-#     name  = "controller.publishService.enabled"
-#     value = "false"
-#   }
-
-#   # --set controller.service.type=NodePort
-#   # kind can’t provision cloud LBs. NodePort works locally and can be mapped to host ports via kind’s extraPortMappings.
-#   set {
-#     name  = "controller.service.type"
-#     value = "NodePort"
-#   }
-
-
-# # Fix the exact NodePort numbers for HTTP/HTTPS.
-# # Why (kind): You’ll map these container ports to your host (e.g., host 80→30080, 443→30443). 
-# # If you don’t fix them, Kubernetes picks random NodePorts (30000–32767), and your host-port mappings won’t line up.
-#   # --set controller.service.nodePorts.http=30080
-#   set {
-#     name  = "controller.service.nodePorts.http"
-#     value = "30088"
-#   }
-
-#   # --set controller.service.nodePorts.https=30443
-#   set {
-#     name  = "controller.service.nodePorts.https"
-#     value = "30553"
-#   }
-# }
-
-
 
 # API GATEWAY
 # Using releases/latest so you always get the GA Standard channel definitions.
@@ -271,3 +216,41 @@ resource "helm_release" "ngf" {
 }
 
 
+# ---- GatewayClass (Envoy Gateway) ----
+# Equivalent to:
+# apiVersion: gateway.networking.k8s.io/v1
+# kind: GatewayClass
+# metadata:
+#   name: envoy-gateway-class
+# spec:
+#   controllerName: gateway.envoyproxy.io/gatewayclass-controller
+resource "kubectl_manifest" "envoy_gateway_class" {
+  yaml_body = yamlencode({
+    apiVersion = "gateway.networking.k8s.io/v1"
+    kind       = "GatewayClass"
+    metadata   = { name = "envoy-gateway-class" }
+    spec       = {
+      controllerName = "gateway.envoyproxy.io/gatewayclass-controller"
+    }
+  })
+  depends_on = [helm_release.ngf]
+}
+
+# Envoy Gateway
+# Equivalent to helm install eg oci://docker.io/envoyproxy/gateway-helm --version v1.5.0 -n envoy-gateway-system --create-namespace
+resource "helm_release" "envoy_gateway" {
+  name             = "eg"
+  namespace        = "envoy-gateway-system"
+  create_namespace = true
+
+  repository = "oci://registry-1.docker.io/envoyproxy"
+  chart      = "gateway-helm"
+  version    = "v1.5.0"
+
+  repository_username = var.dockerhub_username
+  repository_password = var.dockerhub_token
+
+  wait    = true
+  timeout = 600
+  depends_on = [kubectl_manifest.envoy_gateway_class]
+}

@@ -6,7 +6,6 @@ Create a Kubernetes cluster using helm charts and tofu scripts. To build the Kub
 
 ## Requirements
 - Docker/Podman
-- Minikube
 - OpenTofu
 - You need at least 8GB of memory provisioned in Docker
 
@@ -31,8 +30,6 @@ Run the commands bellow to destroy the cluster
 ```bash
 # Destroy kind cluster
 tofu destroy -auto-approve -target=kind_cluster.dev
-# Destroy cluster structure
-tofu destroy -auto-approve -var "kubeconfig_for_providers=kata-cluster-config"
 ```
 
 # Docker commands
@@ -48,7 +45,7 @@ docker push axsoftware/jenkins-agent:latest
 
 # Kubectl commands
 
-- Delete minikube cluster manually
+- Delete cluster manually
 kind delete cluster --name kata-cluster || true
 
 
@@ -64,17 +61,14 @@ helm upgrade  argocd argo/argo-cd -n argocd -f ./helm-values/argocd-values.yaml
 
 - Check demo app
 ```bash
-kubectl apply -f ./gateway/envoy-gateway-class.yaml
+
+# Deploy demo app
 kubectl -n demo describe gateway demo-gw
 kubectl -n demo get gateway demo-gw -o wide
-``` 
 
-- Port forwarding to access demo app
-```bash 
 SVC=$(kubectl -n envoy-gateway-system get svc -l "gateway.envoyproxy.io/owning-gateway-namespace=demo,gateway.envoyproxy.io/owning-gateway-name=demo-gw" -o jsonpath='{.items[0].metadata.name}')
-
 kubectl -n envoy-gateway-system port-forward service/$SVC 8080:80
-# new terminal:
+
 curl -i http://127.0.0.1:8080/
 
 ```
@@ -84,10 +78,11 @@ curl -i http://127.0.0.1:8080/
 
 
 ```bash 
-kubectl apply -f ./boot-kata/gateway/boot-chart-gateway.yaml
+# Apply gateway for boot-chart app
+kubectl apply -f ./gateway/boot-chart-gateway.yaml
 
-SVC=$(kubectl -n envoy-gateway-system get svc -l "gateway.envoyproxy.io/owning-gateway-namespace=app,gateway.envoyproxy.io/owning-gateway-name=boot-chart" -o jsonpath='{.items[0].metadata.name}')
-
+# Expose boot-chart app throw local 8080 port http://localhost:8080
+SVC=$(kubectl -n envoy-gateway-system get svc -l "gateway.envoyproxy.io/owning-gateway-namespace=app,gateway.envoyproxy.io/owning-gateway-name=boot-chart-gw" -o jsonpath='{.items[0].metadata.name}')
 kubectl -n envoy-gateway-system port-forward service/$SVC 8080:8282
 ```
 
