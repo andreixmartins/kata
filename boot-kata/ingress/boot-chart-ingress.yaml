@@ -1,0 +1,18 @@
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: boot-chart
+  namespace: app
+spec:
+  ingressClassName: "nginx"
+  rules:
+  - host: ax-boot-chart.com
+    http:
+      paths:
+      - path: /
+        pathType: Prefix 
+        backend:
+          service:
+            name: boot-chart
+            port: 
+              number: 8282

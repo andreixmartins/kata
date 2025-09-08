@@ -1,0 +1,36 @@
+
+# # Install a controller that implements Gateway API (Envoy Gateway)
+# helm install eg oci://docker.io/envoyproxy/gateway-helm --version v1.5.0 -n envoy-gateway-system --create-namespace
+# kubectl wait -n envoy-gateway-system deploy/envoy-gateway --for=condition=Available --timeout=5m
+
+# # Create a trivial app to route to
+# kubectl create ns demo
+# kubectl -n demo create deploy echo --image=ealen/echo-server:latest --port=80
+# kubectl -n demo expose deploy echo --port=80
+
+# kubectl apply -f ./boot-kata/echo-gateway.yaml
+
+apiVersion: gateway.networking.k8s.io/v1
+kind: Gateway
+metadata:
+  name: demo-gw
+  namespace: demo
+spec:
+  gatewayClassName: envoy-gateway-class
+  listeners:
+  - name: http
+    port: 80
+    protocol: HTTP
+---
+apiVersion: gateway.networking.k8s.io/v1
+kind: HTTPRoute
+metadata:
+  name: demo-route
+  namespace: demo
+spec:
+  parentRefs:
+  - name: demo-gw
+  rules:
+  - backendRefs:
+    - name: echo
+      port: 80

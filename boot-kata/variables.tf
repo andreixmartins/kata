@@ -1,3 +1,5 @@
+
+
 # Kubernetes cluster name
 variable "cluster_name" {
   type    = string
@@ -7,7 +9,6 @@ variable "cluster_name" {
 # Docker hub username for publishing docker image to dockerhub
 variable "dockerhub_username" {
   type        = string
-  default     = "axsoftware"
 }
 
 # Dockerhub registry token. You should get it in your Dockerhub admin account
@@ -21,4 +22,9 @@ variable "jenkins_admin_password" {
   type        = string
   sensitive   = true
   default     = "admin"
+}
+
+variable "kube_context"        { 
+  type = string
+  default = null 
 }
