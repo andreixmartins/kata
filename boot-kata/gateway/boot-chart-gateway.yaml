@@ -1,0 +1,28 @@
+
+# # Inst
+# kubectl apply -f ./boot-kata/gateway/boot-chart-gateway.yaml
+
+apiVersion: gateway.networking.k8s.io/v1
+kind: Gateway
+metadata:
+  name: boot-chart
+  namespace: app
+spec:
+  gatewayClassName: envoy-gateway-class
+  listeners:
+  - name: http
+    port: 8282
+    protocol: HTTP
+---
+apiVersion: gateway.networking.k8s.io/v1
+kind: HTTPRoute
+metadata:
+  name: boot-chart-route
+  namespace: app
+spec:
+  parentRefs:
+  - name: boot-chart
+  rules:
+  - backendRefs:
+    - name: boot-chart
+      port: 8282

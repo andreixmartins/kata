@@ -8,6 +8,8 @@
 # kubectl -n demo create deploy echo --image=ealen/echo-server:latest --port=80
 # kubectl -n demo expose deploy echo --port=80
 
+# kubectl apply -f ./boot-kata/echo-gateway.yaml
+
 apiVersion: gateway.networking.k8s.io/v1
 kind: Gateway
 metadata:

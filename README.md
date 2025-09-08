@@ -71,11 +71,23 @@ kubectl -n demo get gateway demo-gw -o wide
 
 - Port forwarding to access demo app
 ```bash 
-SVC=$(kubectl -n envoy-gateway-system get svc \
-  -l "gateway.envoyproxy.io/owning-gateway-namespace=demo,gateway.envoyproxy.io/owning-gateway-name=demo-gw" \
-  -o jsonpath='{.items[0].metadata.name}')
+SVC=$(kubectl -n envoy-gateway-system get svc -l "gateway.envoyproxy.io/owning-gateway-namespace=demo,gateway.envoyproxy.io/owning-gateway-name=demo-gw" -o jsonpath='{.items[0].metadata.name}')
+
 kubectl -n envoy-gateway-system port-forward service/$SVC 8080:80
 # new terminal:
 curl -i http://127.0.0.1:8080/
 
 ```
+
+
+# DEMO BOOT-CHART APP - Gateway test
+
+
+```bash 
+kubectl apply -f ./boot-kata/gateway/boot-chart-gateway.yaml
+
+SVC=$(kubectl -n envoy-gateway-system get svc -l "gateway.envoyproxy.io/owning-gateway-namespace=app,gateway.envoyproxy.io/owning-gateway-name=boot-chart" -o jsonpath='{.items[0].metadata.name}')
+
+kubectl -n envoy-gateway-system port-forward service/$SVC 8080:8282
+```
+
